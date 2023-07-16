@@ -11,7 +11,7 @@ public class Main {
 
         System.out.println("Parse tree: " + tree.toStringTree(parser));
 
-        //SemanticAnalyzer analyzer = new SemanticAnalyzer();
-        //analyzer.visit(tree);
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        analyzer.visit(tree);
     }
 }

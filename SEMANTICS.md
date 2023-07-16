@@ -64,4 +64,4 @@ Entscheiden Sie, was passiert falls eine uninitialisierte Variable genutzt wird.
 --> Beim ausgeben von uninitialisierte Variablen wird null ausgegeben 
 --> Beim verwenden von uninitialisierte Variablen mit arithmetischen Operatoren wird ein Fehler geworfen
 --> Wenn eine uninitialisierte Variable anstelle eines Booleans verwendet wird, wird ein Fehler geworfen
---> Beim überprüfen auf gleichheit mit Strings die null sind gibt es eine Ausnahme
+--> Das Überprüfen auf Gleichheit mit Variablen, die null sind, ist erlaubt
