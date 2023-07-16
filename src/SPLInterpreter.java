@@ -4,23 +4,25 @@ import java.util.HashMap;
 import java.util.Map;
 import gen.*;
 
-public class SPLInterpreter extends SPLBaseVisitor<Void> {
-
+public class SPLInterpreter extends SPLBaseVisitor<Integer> {
     private Map<String, Integer> variables;
 
     public SPLInterpreter() {
         variables = new HashMap<>();
     }
 
+    public void interpret(ParseTree tree) {
+        visit(tree);
+    }
+
     @Override
-    public Void visitVarDecl(SPLParser.VarDeclContext ctx) {
+    public Integer visitVarDecl(SPLParser.VarDeclContext ctx) {
         String variableName = ctx.IDENTIFIER().getText();
         if (variables.containsKey(variableName)) {
             throw new RuntimeException("Variable " + variableName + " already declared.");
         }
         if (ctx.expression() != null) {
-            visitExpression(ctx.expression());
-            int value = evaluateExpression(ctx.expression());
+            int value = visitExpression(ctx.expression());
             variables.put(variableName, value);
         } else {
             variables.put(variableName, null); // Set default value to null
@@ -29,105 +31,163 @@ public class SPLInterpreter extends SPLBaseVisitor<Void> {
     }
 
     @Override
-    public Void visitPrintStmt(SPLParser.PrintStmtContext ctx) {
-        visitExpression(ctx.expression());
-        int value = evaluateExpression(ctx.expression());
+    public Integer visitPrintStmt(SPLParser.PrintStmtContext ctx) {
+        int value = visitExpression(ctx.expression());
         System.out.println(value);
         return null;
     }
 
     @Override
-    public Void visitAssignment(SPLParser.AssignmentContext ctx) {
+    public Integer visitIfStmt(SPLParser.IfStmtContext ctx) {
+        int conditionValue = visitExpression(ctx.expression());
+        if (conditionValue != 0) {
+            visitStatement(ctx.statement(0));
+        } else if (ctx.statement().size() > 1) {
+            visitStatement(ctx.statement(1));
+        }
+        return null;
+    }
+
+    @Override
+    public Integer visitWhileStmt(SPLParser.WhileStmtContext ctx) {
+        while (visitExpression(ctx.expression()) != 0) {
+            visitStatement(ctx.statement());
+        }
+        return null;
+    }
+
+    @Override
+    public Integer visitBlock(SPLParser.BlockContext ctx) {
+        for (SPLParser.DeclarationContext declaration : ctx.declaration()) {
+            visitDeclaration(declaration);
+        }
+        return null;
+    }
+
+    @Override
+    public Integer visitExprStmt(SPLParser.ExprStmtContext ctx) {
+        visitExpression(ctx.expression());
+        return null;
+    }
+
+    @Override
+    public Integer visitAssignment(SPLParser.AssignmentContext ctx) {
         String variableName = ctx.IDENTIFIER().getText();
         if (!variables.containsKey(variableName)) {
-            throw new RuntimeException("Variable " + variableName + " is not declared.");
+            throw new RuntimeException("Variable " + variableName + " not declared.");
         }
-        visitExpression(ctx.expression());
-        int value = evaluateExpression(ctx.expression());
+        int value = visitExpression(ctx.expression());
         variables.put(variableName, value);
         return null;
     }
 
     @Override
-    public Void visitIfStmt(SPLParser.IfStmtContext ctx) {
-        visitExpression(ctx.expression());
-        int conditionValue = evaluateExpression(ctx.expression());
-        if (conditionValue != 0) {
-            visitBlock(ctx.block(0)); // Execute the if block
-        } else if (ctx.block(1) != null) {
-            visitBlock(ctx.block(1)); // Execute the else block (if present)
+    public Integer visitLogicOr(SPLParser.LogicOrContext ctx) {
+        int result = visitLogicAnd(ctx.logic_and(0));
+        for (int i = 1; i < ctx.logic_and().size(); i++) {
+            result = result | visitLogicAnd(ctx.logic_and(i));
         }
-        return null;
+        return result;
     }
 
     @Override
-    public Void visitWhileStmt(SPLParser.WhileStmtContext ctx) {
-        while (true) {
-            visitExpression(ctx.expression());
-            int conditionValue = evaluateExpression(ctx.expression());
-            if (conditionValue == 0) {
-                break; // Exit the loop if the condition is false
+    public Integer visitLogicAnd(SPLParser.LogicAndContext ctx) {
+        int result = visitEquality(ctx.equality(0));
+        for (int i = 1; i < ctx.equality().size(); i++) {
+            result = result & visitEquality(ctx.equality(i));
+        }
+        return result;
+    }
+
+    @Override
+    public Integer visitEquality(SPLParser.EqualityContext ctx) {
+        int result = visitComparison(ctx.comparison(0));
+        for (int i = 1; i < ctx.comparison().size(); i++) {
+            if (ctx.getChild(i).getText().equals("==")) {
+                result = result == visitComparison(ctx.comparison(i)) ? 1 : 0;
+            } else {
+                result = result != visitComparison(ctx.comparison(i)) ? 1 : 0;
             }
-            visitBlock(ctx.block());
         }
-        return null;
+        return result;
     }
 
     @Override
-    public Void visitExpression(SPLParser.ExpressionContext ctx) {
-        visitAssignment(ctx.assignment());
-        return null;
-    }
-
-    private int evaluateExpression(SPLParser.ExpressionContext ctx) {
-        return evaluateAssignment(ctx.assignment());
-    }
-
-    private int evaluateAssignment(SPLParser.AssignmentContext assignment) {
-        if (assignment.logic_or() != null) {
-            return evaluateLogicOr(assignment.logic_or());
+    public Integer visitComparison(SPLParser.ComparisonContext ctx) {
+        int result = visitTerm(ctx.term(0));
+        for (int i = 1; i < ctx.term().size(); i++) {
+            if (ctx.getChild(i).getText().equals(">")) {
+                result = result > visitTerm(ctx.term(i)) ? 1 : 0;
+            } else if (ctx.getChild(i).getText().equals(">=")) {
+                result = result >= visitTerm(ctx.term(i)) ? 1 : 0;
+            } else if (ctx.getChild(i).getText().equals("<")) {
+                result = result < visitTerm(ctx.term(i)) ? 1 : 0;
+            } else {
+                result = result <= visitTerm(ctx.term(i)) ? 1 : 0;
+            }
         }
-        // Handle other cases if needed
-        return 0;
-    }
-
-    private int evaluateLogicOr(SPLParser.Logic_orContext logicOr) {
-        if (logicOr.logic_and().size() == 1) {
-            return evaluateLogicAnd(logicOr.logic_and(0));
-        }
-        // Handle other cases if needed
-        return 0;
-    }
-
-    // Implement evaluation methods for other expressions and operators
-
-    @Override
-    public Void visitBlock(SPLParser.BlockContext ctx) {
-        for (SPLParser.StatementContext statement : ctx.statement()) {
-            visitStatement(statement);
-        }
-        return null;
+        return result;
     }
 
     @Override
-    public Void visitStatement(SPLParser.StatementContext ctx) {
-        if (ctx.varDecl() != null) {
-            visitVarDecl(ctx.varDecl());
-        } else if (ctx.assignment() != null) {
-            visitAssignment(ctx.assignment());
-        } else if (ctx.ifStmt() != null) {
-            visitIfStmt(ctx.ifStmt());
-        } else if (ctx.whileStmt() != null) {
-            visitWhileStmt(ctx.whileStmt());
-        } else if (ctx.printStmt() != null) {
-            visitPrintStmt(ctx.printStmt());
+    public Integer visitTerm(SPLParser.TermContext ctx) {
+        int result = visitFactor(ctx.factor(0));
+        for (int i = 1; i < ctx.factor().size(); i++) {
+            if (ctx.getChild(i).getText().equals("+")) {
+                result += visitFactor(ctx.factor(i));
+            } else {
+                result -= visitFactor(ctx.factor(i));
+            }
         }
-        return null;
+        return result;
     }
 
-    // Implement other visitor methods as needed
+    @Override
+    public Integer visitFactor(SPLParser.FactorContext ctx) {
+        int result = visitUnary(ctx.unary(0));
+        for (int i = 1; i < ctx.unary().size(); i++) {
+            if (ctx.getChild(i).getText().equals("*")) {
+                result *= visitUnary(ctx.unary(i));
+            } else {
+                result /= visitUnary(ctx.unary(i));
+            }
+        }
+        return result;
+    }
 
-    public void interpret(ParseTree parseTree) {
-        visit(parseTree);
+    @Override
+    public Integer visitUnary(SPLParser.UnaryContext ctx) {
+        if (ctx.getChildCount() == 1) {
+            return visitPrimary(ctx.primary());
+        } else {
+            if (ctx.getChild(0).getText().equals("-")) {
+                return -visitUnary(ctx.unary(0));
+            } else {
+                return visitUnary(ctx.unary(0)) == 0 ? 1 : 0;
+            }
+        }
+    }
+
+    @Override
+    public Integer visitPrimary(SPLParser.PrimaryContext ctx) {
+        if (ctx.TRUE() != null) {
+            return 1;
+        } else if (ctx.FALSE() != null) {
+            return 0;
+        } else if (ctx.NUMBER() != null) {
+            return Integer.parseInt(ctx.NUMBER().getText());
+        } else if (ctx.IDENTIFIER() != null) {
+            String variableName = ctx.IDENTIFIER().getText();
+            if (!variables.containsKey(variableName)) {
+                throw new RuntimeException("Variable " + variableName + " not declared.");
+            }
+            Integer value = variables.get(variableName);
+            if (value == null) {
+                throw new RuntimeException("Variable " + variableName + " not initialized.");
+            }
+            return value;
+        } else {
+            return visitExpression(ctx.expression());
+        }
     }
 }
