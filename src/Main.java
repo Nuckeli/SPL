@@ -13,5 +13,7 @@ public class Main {
 
         SemanticAnalyzer analyzer = new SemanticAnalyzer();
         analyzer.visit(tree);
+        SPLInterpreter interpreter = new SPLInterpreter();
+        interpreter.interpret(tree);
     }
 }
