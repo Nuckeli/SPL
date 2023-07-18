@@ -1,0 +1,29 @@
+// Calculate the middle number of x,y,z
+   
+// Input
+var x = 14;
+var y = 2;
+var z = 5;
+
+// Here we go
+var m = z;
+if(y < z){
+	if(x < y){
+		m = y;
+	} else { 
+		if (x < z){
+			m = x;	
+		}
+	}
+} else {
+	if (x > y){
+		m = y;
+	} else {
+		if (x > z){
+			m = x;
+		}
+	}
+}
+
+// Result
+print m;

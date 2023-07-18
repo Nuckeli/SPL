@@ -1,0 +1,17 @@
+//Euclidean algorithm: Calculate the greatest common divisor of two numbers
+
+// Input
+var a = 100.0;
+var b = 24.0;
+
+// Here we go
+while (a != b) {
+	if (a > b) {
+		a = a - b;
+	} else {
+		b = b - a;
+	}
+}
+
+// Result
+print a;

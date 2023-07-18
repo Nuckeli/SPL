@@ -3,7 +3,8 @@ import org.antlr.v4.runtime.tree.*;
 import gen.*;
 public class Main {
     public static void main(String[] args) {
-        String expression = "3 + 5 * (10 - 2);";
+        String expression = "var a = 4;\n" +
+                "if(true){var a = 3;}";
         SPLLexer lexer = new SPLLexer(CharStreams.fromString(expression));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SPLParser parser = new SPLParser(tokens);
@@ -11,7 +12,8 @@ public class Main {
 
         System.out.println("Parse tree: " + tree.toStringTree(parser));
 
-        //SemanticAnalyzer analyzer = new SemanticAnalyzer();
-        //analyzer.visit(tree);
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        analyzer.visit(tree);
+
     }
 }
