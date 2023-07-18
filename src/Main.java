@@ -8,8 +8,9 @@ public class Main {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SPLParser parser = new SPLParser(tokens);
         ParseTree tree = parser.program();
-
-        System.out.println("Parse tree: " + tree.toStringTree(parser));
+        SPLInterpreter interpreter = new SPLInterpreter();
+        interpreter.interpret(tree);
+        // System.out.println("Parse tree: " + tree.toStringTree(parser));
 
         //SemanticAnalyzer analyzer = new SemanticAnalyzer();
         //analyzer.visit(tree);
