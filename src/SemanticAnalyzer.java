@@ -3,6 +3,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import gen.*;
 import java.util.HashSet;
 import java.util.Set;
+import org.antlr.v4.runtime.Token;
 public class SemanticAnalyzer extends SPLBaseVisitor<Void> {
     private Set<String> declaredVariables = new HashSet<>();
     private Set<String> initializedVariables = new HashSet<>();
@@ -16,6 +17,14 @@ public class SemanticAnalyzer extends SPLBaseVisitor<Void> {
         } else {
             // Variable in den Kontext einfügen
             addVariableToContext(identifier);
+
+            if (ctx.expression() == null) {
+                // Fehler: Variable nicht initialisiert
+                Token identifierToken = ctx.IDENTIFIER().getSymbol();
+                int line = identifierToken.getLine();
+                int column = identifierToken.getCharPositionInLine();
+                System.err.println("Fehler: Variable nicht initialisiert - " + identifier + " (Zeile " + line + ", Spalte " + column + ")");
+            }
         }
 
         // Überprüfen des optionalen Zuweisungsausdrucks
