@@ -3,8 +3,7 @@ import org.antlr.v4.runtime.tree.*;
 import gen.*;
 public class Main {
     public static void main(String[] args) {
-        String expression = "var a;\n" +
-                "if(true){var a;}";
+        String expression = "var a = 3;\n var a = 3 + 3;";
         SPLLexer lexer = new SPLLexer(CharStreams.fromString(expression));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SPLParser parser = new SPLParser(tokens);

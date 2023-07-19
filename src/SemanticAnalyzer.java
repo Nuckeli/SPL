@@ -6,7 +6,7 @@ import java.util.Set;
 import org.antlr.v4.runtime.Token;
 public class SemanticAnalyzer extends SPLBaseVisitor<Void> {
     private Set<String> declaredVariables = new HashSet<>();
-    private Set<String> initializedVariables = new HashSet<>();
+
     @Override
     public Void visitVarDecl(SPLParser.VarDeclContext ctx) {
         // Überprüfen der Variablendeklaration
@@ -72,10 +72,10 @@ public class SemanticAnalyzer extends SPLBaseVisitor<Void> {
     }
 
 
-
     private boolean isNumeric(ParseTree tree) {
         // Überprüfen, ob der Ausdruck eine gültige Zahl ist
         String expression = tree.getText();
+        System.err.println(expression);
         try {
             Double.parseDouble(expression);
             return true;
