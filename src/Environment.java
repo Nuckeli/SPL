@@ -1,53 +1,35 @@
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Environment {
-    private final Deque<Map<String, Object>> scopeStack;
+    private final Map<String, SPLValue> variables;
 
     public Environment() {
-        scopeStack = new ArrayDeque<>();
-        pushScope();
+        variables = new HashMap<>();
     }
 
-    public void pushScope() {
-        scopeStack.push(new HashMap<>());
-    }
-
-    public void popScope() {
-        scopeStack.pop();
-    }
-
-    public void declareVariable(String name, Object value) {
-        scopeStack.peek().put(name, value);
-    }
-
-    public void assignVariable(String name, Object value) {
-        for (Map<String, Object> scope : scopeStack) {
-            if (scope.containsKey(name)) {
-                scope.put(name, value);
-                return;
-            }
+    public void declareVariable(String name) {
+        if (variables.containsKey(name)) {
+            throw new RuntimeException("Variable " + name + " already declared.");
         }
-        throw new RuntimeException("Variable " + name + " not declared.");
+        variables.put(name, null);
     }
 
-    public Object getVariableValue(String name) {
-        for (Map<String, Object> scope : scopeStack) {
-            if (scope.containsKey(name)) {
-                return scope.get(name);
-            }
+    public void assignVariable(String name, SPLValue value) {
+        if (!variables.containsKey(name)) {
+            throw new RuntimeException("Variable " + name + " not declared.");
         }
-        throw new RuntimeException("Variable " + name + " not declared.");
+        variables.put(name, value);
+    }
+
+    public SPLValue getVariableValue(String name) {
+        if (!variables.containsKey(name)) {
+            throw new RuntimeException("Variable " + name + " not declared.");
+        }
+        return variables.get(name);
     }
 
     public boolean isVariableDeclared(String name) {
-        for (Map<String, Object> scope : scopeStack) {
-            if (scope.containsKey(name)) {
-                return true;
-            }
-        }
-        return false;
+        return variables.containsKey(name);
     }
 }
