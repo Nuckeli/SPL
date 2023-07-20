@@ -9,6 +9,8 @@ public class Main {
                 // Input
                 var b = 24.0;
                 b = 3;
+                var x = 1337;
+                var s = "Super krasser String der hoffentlich erkannt wird;"
                                 
                 // Here we go
                 while (a != b) {
