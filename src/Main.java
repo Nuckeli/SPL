@@ -7,8 +7,9 @@ public class Main {
                 //Euclidean algorithm: Calculate the greatest common divisor of two numbers
                                 
                 // Input
+                var a = 12;
                 var b = 24.0;
-                b = 3;
+                var c = 3;
                 var x = 1337;
                 var s = "Super krasser String der hoffentlich erkannt wird;"
                                 

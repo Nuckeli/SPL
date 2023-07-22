@@ -1,4 +1,4 @@
-// Generated from C:/Users/Leo/IdeaProjects/SPL/src\SPL.g4 by ANTLR 4.12.0
+// Generated from /home/tobias/Desktop/6. Semester/Compilerbau/SPL/src/SPL.g4 by ANTLR 4.12.0
 package gen;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 

@@ -6,12 +6,15 @@ import java.util.Map;
 public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     private final Map<String, SPLValue> symbolTable;
+    private String currentVarName;
 
     public CustomSPLVisitor() {
         symbolTable = new HashMap<>();
+        currentVarName = null;
     }
     @Override
     public SPLValue visitProgram(SPLParser.ProgramContext ctx) {
+        printContextInfo(ctx, "Program");
         for (SPLParser.DeclarationContext declarationCtx : ctx.declaration()) {
             visit(declarationCtx);
         }
@@ -31,154 +34,76 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitVarDecl(SPLParser.VarDeclContext ctx) {
+        printContextInfo(ctx, "VarDeclaration");
         String varName = ctx.IDENTIFIER().getText();
-        SPLValue varValue = null;
+        currentVarName = varName;
+        SPLValue varValue = null; // Standardmäßig ist der Variablenwert null
+
         if (ctx.expression() != null) {
             varValue = visit(ctx.expression()); // Wenn eine Zuweisung vorhanden ist, werte den Ausdruck aus
         }
-        symbolTable.put(varName, new SPLUndefinedValue());
-        printContextInfo(ctx, "Variable Declaration");
-        return super.visitVarDecl(ctx);
+
+        // Füge den Variablennamen und den Wert in die Symboltabelle ein
+        System.out.println(varName);
+        symbolTable.put(varName, varValue);
+
+
+        return varValue;
     }
 
     @Override
     public SPLValue visitStatement(SPLParser.StatementContext ctx) {
         printContextInfo(ctx, "Statement");
-        return visit(ctx);
+        if (ctx.exprStmt() != null) {
+            return visitExprStmt(ctx.exprStmt());
+        } else if (ctx.ifStmt() != null) {
+            return visitIfStmt(ctx.ifStmt());
+        } else if (ctx.printStmt() != null) {
+            return visitPrintStmt(ctx.printStmt());
+        } else if (ctx.whileStmt() != null) {
+            return visitWhileStmt(ctx.whileStmt());
+        } else if (ctx.block() != null) {
+            return visitBlock(ctx.block());
+        } else {
+            throw new RuntimeException("Invalid statement.");
+        }
     }
 
     @Override
     public SPLValue visitExprStmt(SPLParser.ExprStmtContext ctx) {
         printContextInfo(ctx, "Expression Statement");
-        return visit(ctx.expression()); // Rufe die visit-Methode auf, um den Wert des Ausdrucks zu erhalten
+        return visitExpression(ctx.expression()); // Rufe die visit-Methode auf, um den Wert des Ausdrucks zu erhalten
     }
 
     @Override
     public SPLValue visitIfStmt(SPLParser.IfStmtContext ctx) {
         printContextInfo(ctx, "If Statement");
-        return super.visitIfStmt(ctx);
-    }
-
-    @Override
-    public SPLValue visitPrintStmt(SPLParser.PrintStmtContext ctx) {
-        printContextInfo(ctx, "Print Statement");
-        return super.visitPrintStmt(ctx);
-    }
-
-    @Override
-    public SPLValue visitWhileStmt(SPLParser.WhileStmtContext ctx) {
-        printContextInfo(ctx, "While Statement");
-        return super.visitWhileStmt(ctx);
-    }
-
-    @Override
-    public SPLValue visitBlock(SPLParser.BlockContext ctx) {
-        printContextInfo(ctx, "Block");
-        return super.visitBlock(ctx);
-    }
-
-    @Override
-    public SPLValue visitExpression(SPLParser.ExpressionContext ctx) {
-        printContextInfo(ctx, "Expression");
-        return super.visitExpression(ctx);
-    }
-
-    @Override
-    public SPLValue visitAssignment(SPLParser.AssignmentContext ctx) {
-        printContextInfo(ctx, "Assignment");
-        return super.visitAssignment(ctx);
-    }
-
-    @Override
-    public SPLValue visitLogic_or(SPLParser.Logic_orContext ctx) {
-        printContextInfo(ctx, "Logic_or");
-        return super.visitLogic_or(ctx);
-    }
-
-    @Override
-    public SPLValue visitLogic_and(SPLParser.Logic_andContext ctx) {
-        printContextInfo(ctx, "Logic_and");
-        return super.visitLogic_and(ctx);
-    }
-
-    @Override
-    public SPLValue visitEquality(SPLParser.EqualityContext ctx) {
-        printContextInfo(ctx, "Equality");
-        return super.visitEquality(ctx);
-    }
-
-    @Override
-    public SPLValue visitComparison(SPLParser.ComparisonContext ctx) {
-        printContextInfo(ctx, "Comparison");
-        return super.visitComparison(ctx);
-    }
-
-    @Override
-    public SPLValue visitTerm(SPLParser.TermContext ctx) {
-        printContextInfo(ctx, "Term");
-        return super.visitTerm(ctx);
-    }
-
-    @Override
-    public SPLValue visitFactor(SPLParser.FactorContext ctx) {
-        printContextInfo(ctx, "Factor");
-        return super.visitFactor(ctx);
-    }
-
-    @Override
-    public SPLValue visitUnary(SPLParser.UnaryContext ctx) {
-        printContextInfo(ctx, "Unary");
-        return super.visitUnary(ctx);
-    }
-
-    @Override
-    public SPLValue visitPrimary(SPLParser.PrimaryContext ctx) {
-        printContextInfo(ctx, "Primary");
-        System.out.println(ctx.NUMBER());
-        System.out.println(ctx.STRING());
-        return super.visitPrimary(ctx);
-    }
-
-    // Helper method to print node information
-    private void printContextInfo(ParserRuleContext ctx, String nodeName) {
-        int line = ctx.getStart().getLine();
-        int column = ctx.getStart().getCharPositionInLine();
-        System.out.println("Visiting " + nodeName + " at line " + line + ", column " + column);
-        System.out.println(symbolTable);
-    }
-
-    private SPLValue evaluateStatement(SPLParser.StatementContext ctx) {
-        return visit(ctx); // Rufe die ursprüngliche visit-Methode auf
-    }
-
-    private SPLValue evaluateExprStmt(SPLParser.ExprStmtContext ctx) {
-        return evaluateExpression(ctx.expression());
-    }
-
-    private SPLValue evaluateIfStmt(SPLParser.IfStmtContext ctx) {
-        SPLValue conditionValue = evaluateExpression(ctx.expression());
+        SPLValue conditionValue = visitExpression(ctx.expression());
         // Überprüfe, ob der Ausdruck einen Boolean zurückgibt
         if (!(conditionValue instanceof SPLBooleanValue)) {
             throw new RuntimeException("Boolean condition expected in if statement.");
         }
 
         if (conditionValue.asBoolean()) {
-            return evaluateStatement(ctx.statement(0));
+            return visitStatement(ctx.statement(0));
         } else if (ctx.statement().size() > 1) {
-            return evaluateStatement(ctx.statement(1));
+            return visitStatement(ctx.statement(1));
         }
-        return new SPLUndefinedValue();
-    }
+        return new SPLUndefinedValue();    }
 
-
-    private SPLValue evaluatePrintStmt(SPLParser.PrintStmtContext ctx) {
-        SPLValue value = evaluateExpression(ctx.expression());
+    @Override
+    public SPLValue visitPrintStmt(SPLParser.PrintStmtContext ctx) {
+        printContextInfo(ctx, "Print Statement");
+        SPLValue value = visitExpression(ctx.expression());
         System.out.println(value); // Gib den Wert auf der Konsole aus
         return value; // Gib den Wert zurück, falls es später verwendet werden soll
+
     }
 
-    private SPLValue evaluateWhileStmt(SPLParser.WhileStmtContext ctx) {
-        SPLValue conditionValue = evaluateExpression(ctx.expression());
+    @Override
+    public SPLValue visitWhileStmt(SPLParser.WhileStmtContext ctx) {
+        printContextInfo(ctx, "While Statement");
+        SPLValue conditionValue = visitExpression(ctx.expression());
 
         // Überprüfe, ob der Ausdruck einen Boolean zurückgibt
         if (!(conditionValue instanceof SPLBooleanValue)) {
@@ -186,57 +111,85 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         }
 
         while (conditionValue.asBoolean()) {
-            evaluateStatement(ctx.statement());
-            conditionValue = evaluateExpression(ctx.expression());
+            visitStatement(ctx.statement());
+            conditionValue = visitExpression(ctx.expression());
         }
         return new SPLUndefinedValue();
     }
 
-    private SPLValue evaluateBlock(SPLParser.BlockContext ctx) {
-        return visit(ctx); // Rufe die ursprüngliche visit-Methode auf
+    @Override
+    public SPLValue visitBlock(SPLParser.BlockContext ctx) {
+        // Rufe die visit-Methode für jede Deklaration im Block auf
+        for (SPLParser.DeclarationContext declarationContext : ctx.declaration()) {
+            visitDeclaration(declarationContext);
+        }
+        return new SPLUndefinedValue();
     }
 
-    private SPLValue evaluateExpression(SPLParser.ExpressionContext ctx) {
-        return evaluateAssignment(ctx.assignment());
+    @Override
+    public SPLValue visitExpression(SPLParser.ExpressionContext ctx) {
+        printContextInfo(ctx, "Expression");
+        if (ctx.assignment() != null) {
+            return visitAssignment(ctx.assignment());
+        } else {
+            throw new RuntimeException("Invalid expression.");
+        }
     }
 
-    private SPLValue evaluateAssignment(SPLParser.AssignmentContext ctx) {
-        String varName = ctx.IDENTIFIER().getText();
-        SPLValue rightValue = evaluateLogicOr(ctx.logic_or());
-        symbolTable.put(varName, rightValue);
+    @Override
+    public SPLValue visitAssignment(SPLParser.AssignmentContext ctx) {
+        printContextInfo(ctx, "Assignment");
+        if (currentVarName == null){
+            throw new RuntimeException("No IDENTIFIER found in assignment context.");
+        }
+
+        SPLValue rightValue = visitLogic_or(ctx.logic_or());
+        System.out.println(ctx.logic_or());
+        symbolTable.put(currentVarName, rightValue);
         return rightValue;
     }
 
-    // Helper method to evaluate the logic or value
-    private SPLValue evaluateLogicOr(SPLParser.Logic_orContext ctx) {
-        SPLValue result = evaluateLogicAnd(ctx.logic_and(0));
-        for (int i = 1; i < ctx.logic_and().size(); i++) {
-            boolean leftValue = result.asBoolean();
-            boolean rightValue = evaluateLogicAnd(ctx.logic_and(i)).asBoolean();
-            // Perform logical OR and store the result
-            result = new SPLBooleanValue(leftValue || rightValue);
+    @Override
+    public SPLValue visitLogic_or(SPLParser.Logic_orContext ctx) {
+        printContextInfo(ctx, "Logic_or");
+        if (ctx.logic_and().size() > 1) {
+            SPLValue result = visitLogic_and(ctx.logic_and(0));
+            for (int i = 1; i < ctx.logic_and().size(); i++) {
+                boolean leftValue = result.asBoolean();
+                boolean rightValue = visitLogic_and(ctx.logic_and(i)).asBoolean();
+                // Perform logical OR and store the result
+                result = new SPLBooleanValue(leftValue || rightValue);
+            }
+            return result;
+        } else {
+            return visitLogic_and(ctx.logic_and(0));
         }
-        return result;
     }
 
-    // Helper method to evaluate the logic and value
-    private SPLValue evaluateLogicAnd(SPLParser.Logic_andContext ctx) {
-        SPLValue result = evaluateEquality(ctx.equality(0));
-        for (int i = 1; i < ctx.equality().size(); i++) {
-            boolean leftValue = result.asBoolean();
-            boolean rightValue = evaluateEquality(ctx.equality(i)).asBoolean();
-            // Perform logical AND and store the result
-            result = new SPLBooleanValue(leftValue && rightValue);
+    @Override
+    public SPLValue visitLogic_and(SPLParser.Logic_andContext ctx) {
+        printContextInfo(ctx, "Logic_and");
+        if (ctx.equality().size() > 1) {
+            SPLValue result = visitEquality(ctx.equality(0));
+            for (int i = 1; i < ctx.equality().size(); i++) {
+                boolean leftValue = result.asBoolean();
+                boolean rightValue = visitEquality(ctx.equality(i)).asBoolean();
+                // Perform logical AND and store the result
+                result = new SPLBooleanValue(leftValue && rightValue);
+            }
+            return result;
+        } else {
+            return visitEquality(ctx.equality(0));
         }
-        return result;
     }
 
-    // Helper method to evaluate the equality value
-    private SPLValue evaluateEquality(SPLParser.EqualityContext ctx) {
-        SPLValue result = evaluateComparison(ctx.comparison(0));
+    @Override
+    public SPLValue visitEquality(SPLParser.EqualityContext ctx) {
+        printContextInfo(ctx, "Equality");
+        SPLValue result = visitComparison(ctx.comparison(0));
         for (int i = 1; i < ctx.comparison().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
-            SPLValue rightValue = evaluateComparison(ctx.comparison(i));
+            SPLValue rightValue = visitComparison(ctx.comparison(i));
             switch (operator) {
                 case "==":
                     // Perform equality comparison and store the result
@@ -251,11 +204,13 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         return result;
     }
 
-    private SPLValue evaluateComparison(SPLParser.ComparisonContext ctx) {
-        SPLValue result = evaluateTerm(ctx.term(0));
+    @Override
+    public SPLValue visitComparison(SPLParser.ComparisonContext ctx) {
+        printContextInfo(ctx, "Comparison");
+        SPLValue result = visitTerm(ctx.term(0));
         for (int i = 1; i < ctx.term().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
-            SPLValue rightValue = evaluateTerm(ctx.term(i));
+            SPLValue rightValue = visitTerm(ctx.term(i));
             switch (operator) {
                 case ">":
                     result = new SPLBooleanValue(result.asDouble() > rightValue.asDouble());
@@ -274,11 +229,13 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         return result;
     }
 
-    private SPLValue evaluateTerm(SPLParser.TermContext ctx) {
-        SPLValue result = evaluateFactor(ctx.factor(0));
+    @Override
+    public SPLValue visitTerm(SPLParser.TermContext ctx) {
+        printContextInfo(ctx, "Term");
+        SPLValue result = visitFactor(ctx.factor(0));
         for (int i = 1; i < ctx.factor().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
-            SPLValue rightValue = evaluateFactor(ctx.factor(i));
+            SPLValue rightValue = visitFactor(ctx.factor(i));
 
             // Überprüfe, ob beide Operanden numerisch sind
             if (!result.isNumeric() || !rightValue.isNumeric()) {
@@ -299,11 +256,13 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         return result;
     }
 
-    private SPLValue evaluateFactor(SPLParser.FactorContext ctx) {
-        SPLValue result = evaluateUnary(ctx.unary(0));
+    @Override
+    public SPLValue visitFactor(SPLParser.FactorContext ctx) {
+        printContextInfo(ctx, "Factor");
+        SPLValue result = visitUnary(ctx.unary(0));
         for (int i = 1; i < ctx.unary().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
-            SPLValue rightValue = evaluateUnary(ctx.unary(i));
+            SPLValue rightValue = visitUnary(ctx.unary(i));
 
             // Überprüfe, ob beide Operanden numerisch sind
             if (!result.isNumeric() || !rightValue.isNumeric()) {
@@ -321,23 +280,25 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
                     throw new RuntimeException("Unsupported arithmetic operator: " + operator);
             }
         }
-        return result;
-    }
+        return result;    }
 
-    private SPLValue evaluateUnary(SPLParser.UnaryContext ctx) {
+    @Override
+    public SPLValue visitUnary(SPLParser.UnaryContext ctx) {
+        printContextInfo(ctx, "Unary");
         if (ctx.NOT() != null) {
-            SPLValue operandValue = evaluateUnary(ctx.unary());
+            SPLValue operandValue = visitUnary(ctx.unary());
             return new SPLBooleanValue(!operandValue.asBoolean());
         } else if (ctx.MINUS() != null) {
-            SPLValue operandValue = evaluateUnary(ctx.unary());
+            SPLValue operandValue = visitUnary(ctx.unary());
             return operandValue.negate();
         } else {
-            return evaluatePrimary(ctx.primary());
+            return visitPrimary(ctx.primary());
         }
     }
 
-    // Helper method to evaluate the primary value
-    private SPLValue evaluatePrimary(SPLParser.PrimaryContext ctx) {
+    @Override
+    public SPLValue visitPrimary(SPLParser.PrimaryContext ctx) {
+        printContextInfo(ctx, "Primary");
         if (ctx.TRUE() != null) {
             return new SPLBooleanValue(true);
         } else if (ctx.FALSE() != null) {
@@ -350,7 +311,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
             String stringValue = ctx.STRING().getText().substring(1, ctx.STRING().getText().length() - 1);
             return new SPLStringValue(stringValue);
         } else if (ctx.expression() != null) {
-            return evaluateExpression(ctx.expression());
+            return visitExpression(ctx.expression());
         } else if (ctx.IDENTIFIER() != null) {
             String varName = ctx.IDENTIFIER().getText();
             if (symbolTable.containsKey(varName)) {
@@ -365,4 +326,15 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
             return new SPLUndefinedValue();
         }
     }
+
+    // Helper method to print node information
+    private void printContextInfo(ParserRuleContext ctx, String nodeName) {
+        if (ctx != null) {
+            int line = ctx.getStart().getLine();
+            int column = ctx.getStart().getCharPositionInLine();
+            System.out.println("Visiting " + nodeName + " at line " + line + ", column " + column);
+            System.out.println(symbolTable);
+        }
+    }
+
 }
