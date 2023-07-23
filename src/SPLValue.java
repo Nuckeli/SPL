@@ -1,38 +1,35 @@
+// Abstrakte Klasse, die die Basis für verschiedene Werttypen darstellt.
 abstract class SPLValue {
-    protected double value;
-    // Implementations for casting to specific types
+    protected double value; // Der Wert, der von den abgeleiteten Klassen verwendet wird.
 
-    public abstract double asDouble();
+    // Methoden, die von den abgeleiteten Klassen implementiert werden müssen, um den Wert in verschiedenen Formaten zurückzugeben.
+    public abstract double asDouble(); // Als Gleitkommazahl zurückgeben.
+    public abstract String asString(); // Als Zeichenkette zurückgeben.
+    public abstract boolean asBoolean(); // Als booleschen Wert zurückgeben.
 
-    public abstract String asString();
-
-    public abstract boolean asBoolean();
-
-    // Prüft, ob der Wert numerisch ist (nur in SPLNumberValue implementiert)
-    public boolean isNumeric() {
+    public boolean isNumeric() { // Prüfen, ob der Wert numerisch ist.
         return false;
     }
-    public boolean isBoolean() {
+    public boolean isBoolean() { // Prüfen, ob der Wert boolesch ist.
+        return false;
+    }
+    public boolean isString() { // Prüfen, ob der Wert eine Zeichenkette ist.
         return false;
     }
 
-    public boolean isString() {
-        return false;
-    }
-    // Override toString() to provide a meaningful representation of the value
+    // Die Methode, die den Wert als Zeichenkette repräsentiert.
     @Override
     public abstract String toString();
 
-    public abstract SPLValue add(SPLValue other);
-    public abstract SPLValue subtract(SPLValue other);
-    public abstract SPLValue multiply(SPLValue other);
-    public abstract SPLValue divide(SPLValue other);
-    public abstract SPLValue negate();
-
-    public abstract boolean equals(SPLValue other);
-
+    // Methoden, die von den abgeleiteten Klassen implementiert werden müssen, um arithmetische Operationen auszuführen.
+    public abstract SPLValue add(SPLValue other); // Addition.
+    public abstract SPLValue subtract(SPLValue other); // Subtraktion.
+    public abstract SPLValue multiply(SPLValue other); // Multiplikation.
+    public abstract SPLValue divide(SPLValue other); // Division.
+    public abstract SPLValue negate(); // Negation.
 }
 
+// Eine Klasse, die eine Zahl repräsentiert.
 class SPLNumberValue extends SPLValue {
     final double value;
 
@@ -40,6 +37,7 @@ class SPLNumberValue extends SPLValue {
         this.value = value;
     }
 
+    // Implementierung der abstrakten Methoden für die Zahl.
     @Override
     public double asDouble() {
         return value;
@@ -60,38 +58,34 @@ class SPLNumberValue extends SPLValue {
         return Double.toString(value);
     }
 
+    // Implementierung der arithmetischen Operationen für die Zahl.
     @Override
-    public SPLValue add(SPLValue other) {
+    public SPLValue add(SPLValue other) { // Addition.
         double otherValue = ((SPLNumberValue) other).value;
         return new SPLNumberValue(value + otherValue);
     }
 
     @Override
-    public SPLValue subtract(SPLValue other) {
+    public SPLValue subtract(SPLValue other) { // Subtraktion.
         double otherValue = ((SPLNumberValue) other).value;
         return new SPLNumberValue(value - otherValue);
     }
 
     @Override
-    public SPLValue multiply(SPLValue other) {
+    public SPLValue multiply(SPLValue other) { // Multiplikation.
         double otherValue = ((SPLNumberValue) other).value;
         return new SPLNumberValue(value * otherValue);
     }
 
     @Override
-    public SPLValue divide(SPLValue other) {
+    public SPLValue divide(SPLValue other) { // Division.
         double otherValue = ((SPLNumberValue) other).value;
         if (otherValue == 0.0) {
-            // Division durch Null sollte vermieden werden
-            System.out.println("Division by zero!");
+            // Division durch Null vermeiden
+            System.out.println("Division durch Null!");
             return new SPLUndefinedValue();
         }
         return new SPLNumberValue(value / otherValue);
-    }
-
-    @Override
-    public SPLValue negate() {
-        return new SPLNumberValue(-value);
     }
 
     @Override
@@ -99,17 +93,14 @@ class SPLNumberValue extends SPLValue {
         return true;
     }
 
-
+    // Implementierung der Negation für die Zahl.
     @Override
-    public boolean equals(SPLValue other) {
-        // Hier implementierst du den Vergleich für SPLNumberValue
-        if (other instanceof SPLNumberValue) {
-            return this.value == ((SPLNumberValue) other).value;
-        }
-        return false;
+    public SPLValue negate() {
+        return new SPLNumberValue(-value);
     }
 }
 
+// Eine Klasse, die einen Zeichenkettenwert repräsentiert.
 class SPLStringValue extends SPLValue {
     private final String value;
 
@@ -117,6 +108,7 @@ class SPLStringValue extends SPLValue {
         this.value = value;
     }
 
+    // Implementierung der abstrakten Methoden für die Zeichenkette.
     @Override
     public double asDouble() {
         try {
@@ -142,16 +134,6 @@ class SPLStringValue extends SPLValue {
     }
 
     @Override
-    public boolean isNumeric() {
-        return false;
-    }
-
-    @Override
-    public boolean isString() {
-        return true;
-    }
-
-    @Override
     public SPLValue add(SPLValue other) {
         return null;
     }
@@ -177,15 +159,12 @@ class SPLStringValue extends SPLValue {
     }
 
     @Override
-    public boolean equals(SPLValue other) {
-        // Hier implementierst du den Vergleich für SPLStringValue
-        if (other instanceof SPLStringValue) {
-            return this.value.equals(((SPLStringValue) other).value);
-        }
-        return false;
+    public boolean isString() {
+        return true;
     }
 }
 
+// Eine Klasse, die einen booleschen Wert repräsentiert.
 class SPLBooleanValue extends SPLValue {
     private final boolean value;
 
@@ -193,6 +172,7 @@ class SPLBooleanValue extends SPLValue {
         this.value = value;
     }
 
+    // Implementierung der abstrakten Methoden für den booleschen Wert.
     @Override
     public double asDouble() {
         return value ? 1.0 : 0.0;
@@ -214,14 +194,6 @@ class SPLBooleanValue extends SPLValue {
     }
 
     @Override
-    public boolean isNumeric() {
-        return false;
-    }
-
-    @Override
-    public boolean isBoolean() { return true; }
-
-    @Override
     public SPLValue add(SPLValue other) {
         return null;
     }
@@ -242,22 +214,21 @@ class SPLBooleanValue extends SPLValue {
     }
 
     @Override
+    public boolean isBoolean() {
+        return true;
+    }
+
+    // Implementierung der Negation für den booleschen Wert.
+    @Override
     public SPLValue negate() {
         return new SPLBooleanValue(!value);
     }
-
-    @Override
-    public boolean equals(SPLValue other) {
-        // Hier implementierst du den Vergleich für SPLBooleanValue
-        if (other instanceof SPLBooleanValue) {
-            return this.value == ((SPLBooleanValue) other).value;
-        }
-        return false;
-    }
 }
 
+// Eine Klasse, die einen undefinierten Wert repräsentiert.
 class SPLUndefinedValue extends SPLValue {
 
+    // Implementierung der abstrakten Methoden für den undefinierten Wert.
     @Override
     public double asDouble() {
         return 0.0;
@@ -279,11 +250,6 @@ class SPLUndefinedValue extends SPLValue {
     }
 
     @Override
-    public boolean isNumeric() {
-        return false;
-    }
-
-    @Override
     public SPLValue add(SPLValue other) {
         return null;
     }
@@ -306,10 +272,5 @@ class SPLUndefinedValue extends SPLValue {
     @Override
     public SPLValue negate() {
         return null;
-    }
-
-    @Override
-    public boolean equals(SPLValue other) {
-        return other instanceof SPLUndefinedValue;
     }
 }
