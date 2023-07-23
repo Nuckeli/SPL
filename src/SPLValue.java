@@ -12,6 +12,13 @@ abstract class SPLValue {
     public boolean isNumeric() {
         return false;
     }
+    public boolean isBoolean() {
+        return false;
+    }
+
+    public boolean isString() {
+        return false;
+    }
     // Override toString() to provide a meaningful representation of the value
     @Override
     public abstract String toString();
@@ -21,10 +28,13 @@ abstract class SPLValue {
     public abstract SPLValue multiply(SPLValue other);
     public abstract SPLValue divide(SPLValue other);
     public abstract SPLValue negate();
+
+    public abstract boolean equals(SPLValue other);
+
 }
 
 class SPLNumberValue extends SPLValue {
-    private final double value;
+    final double value;
 
     public SPLNumberValue(double value) {
         this.value = value;
@@ -52,32 +62,51 @@ class SPLNumberValue extends SPLValue {
 
     @Override
     public SPLValue add(SPLValue other) {
-        return new SPLNumberValue(value + other.value);
+        double otherValue = ((SPLNumberValue) other).value;
+        return new SPLNumberValue(value + otherValue);
     }
 
     @Override
     public SPLValue subtract(SPLValue other) {
-        return new SPLNumberValue(value - other.value);
+        double otherValue = ((SPLNumberValue) other).value;
+        return new SPLNumberValue(value - otherValue);
     }
 
     @Override
     public SPLValue multiply(SPLValue other) {
-        return new SPLNumberValue(value * other.value);
+        double otherValue = ((SPLNumberValue) other).value;
+        return new SPLNumberValue(value * otherValue);
     }
 
     @Override
     public SPLValue divide(SPLValue other) {
+        double otherValue = ((SPLNumberValue) other).value;
         if (other.value == 0.0) {
             // Division durch Null sollte vermieden werden
             System.out.println("Division by zero!");
             return new SPLUndefinedValue();
         }
-        return new SPLNumberValue(value / other.value);
+        return new SPLNumberValue(value / otherValue);
     }
 
     @Override
     public SPLValue negate() {
         return new SPLNumberValue(-value);
+    }
+
+    @Override
+    public boolean isNumeric() {
+        return true;
+    }
+
+
+    @Override
+    public boolean equals(SPLValue other) {
+        // Hier implementierst du den Vergleich für SPLNumberValue
+        if (other instanceof SPLNumberValue) {
+            return this.value == ((SPLNumberValue) other).value;
+        }
+        return false;
     }
 }
 
@@ -118,6 +147,11 @@ class SPLStringValue extends SPLValue {
     }
 
     @Override
+    public boolean isString() {
+        return true;
+    }
+
+    @Override
     public SPLValue add(SPLValue other) {
         return null;
     }
@@ -140,6 +174,15 @@ class SPLStringValue extends SPLValue {
     @Override
     public SPLValue negate() {
         return null;
+    }
+
+    @Override
+    public boolean equals(SPLValue other) {
+        // Hier implementierst du den Vergleich für SPLStringValue
+        if (other instanceof SPLStringValue) {
+            return this.value.equals(((SPLStringValue) other).value);
+        }
+        return false;
     }
 }
 
@@ -176,6 +219,9 @@ class SPLBooleanValue extends SPLValue {
     }
 
     @Override
+    public boolean isBoolean() { return true; }
+
+    @Override
     public SPLValue add(SPLValue other) {
         return null;
     }
@@ -197,7 +243,16 @@ class SPLBooleanValue extends SPLValue {
 
     @Override
     public SPLValue negate() {
-        return null;
+        return new SPLBooleanValue(!value);
+    }
+
+    @Override
+    public boolean equals(SPLValue other) {
+        // Hier implementierst du den Vergleich für SPLBooleanValue
+        if (other instanceof SPLBooleanValue) {
+            return this.value == ((SPLBooleanValue) other).value;
+        }
+        return false;
     }
 }
 
@@ -251,5 +306,10 @@ class SPLUndefinedValue extends SPLValue {
     @Override
     public SPLValue negate() {
         return null;
+    }
+
+    @Override
+    public boolean equals(SPLValue other) {
+        return other instanceof SPLUndefinedValue;
     }
 }
