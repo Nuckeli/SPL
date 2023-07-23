@@ -81,7 +81,7 @@ class SPLNumberValue extends SPLValue {
     @Override
     public SPLValue divide(SPLValue other) {
         double otherValue = ((SPLNumberValue) other).value;
-        if (other.value == 0.0) {
+        if (otherValue == 0.0) {
             // Division durch Null sollte vermieden werden
             System.out.println("Division by zero!");
             return new SPLUndefinedValue();

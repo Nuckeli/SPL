@@ -14,7 +14,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
     }
     @Override
     public SPLValue visitProgram(SPLParser.ProgramContext ctx) {
-        //printContextInfo(ctx, "Program");
+        printContextInfo(ctx, "Program");
         for (SPLParser.DeclarationContext declarationCtx : ctx.declaration()) {
             visit(declarationCtx);
         }
@@ -23,7 +23,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitDeclaration(SPLParser.DeclarationContext ctx) {
-        //printContextInfo(ctx, "Declaration");
+        printContextInfo(ctx, "Declaration");
         if (ctx.varDecl() != null) {
             return visitVarDecl(ctx.varDecl());
         } else if (ctx.statement() != null) {
@@ -34,14 +34,19 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitVarDecl(SPLParser.VarDeclContext ctx) {
-        //printContextInfo(ctx, "VarDeclaration");
+        printContextInfo(ctx, "VarDeclaration");
         String varName = ctx.IDENTIFIER().getText();
+
         currentVarName = varName;
         SPLValue varValue = null; // Standardmäßig ist der Variablenwert null
-
+        if (symbolTable.containsKey(varName)) {
+            throw new RuntimeException("Variable bereits deklariert! Keine Neudeklaration erlaubt!");
+        }
         if (ctx.expression() != null) {
             varValue = visit(ctx.expression()); // Wenn eine Zuweisung vorhanden ist, werte den Ausdruck aus
         }
+        System.out.println(varName);
+
 
         // Füge den Variablennamen und den Wert in die Symboltabelle ein
         System.out.println(varName);
@@ -53,7 +58,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitStatement(SPLParser.StatementContext ctx) {
-        //printContextInfo(ctx, "Statement");
+        printContextInfo(ctx, "Statement");
         if (ctx.exprStmt() != null) {
             return visitExprStmt(ctx.exprStmt());
         } else if (ctx.ifStmt() != null) {
@@ -71,17 +76,18 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitExprStmt(SPLParser.ExprStmtContext ctx) {
-        //printContextInfo(ctx, "Expression Statement");
+        printContextInfo(ctx, "Expression Statement");
         return visitExpression(ctx.expression()); // Rufe die visit-Methode auf, um den Wert des Ausdrucks zu erhalten
     }
 
     @Override
     public SPLValue visitIfStmt(SPLParser.IfStmtContext ctx) {
-        //printContextInfo(ctx, "If Statement");
+        printContextInfo(ctx, "If Statement");
         SPLValue conditionValue = visitExpression(ctx.expression());
+        System.out.println("\n\n\nCONDITIONVALUE: "+ conditionValue);
         // Überprüfe, ob der Ausdruck einen Boolean zurückgibt
         if (!(conditionValue instanceof SPLBooleanValue)) {
-            throw new RuntimeException("Boolean condition expected in if statement.");
+            throw new RuntimeException("Boolscher Ausdruck im If-Statement erwartet.");
         }
 
         if (conditionValue.asBoolean()) {
@@ -93,7 +99,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitPrintStmt(SPLParser.PrintStmtContext ctx) {
-        //printContextInfo(ctx, "Print Statement");
+        printContextInfo(ctx, "Print Statement");
         SPLValue value = visitExpression(ctx.expression());
         System.out.println(value); // Gib den Wert auf der Konsole aus
         return value; // Gib den Wert zurück, falls es später verwendet werden soll
@@ -102,12 +108,12 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitWhileStmt(SPLParser.WhileStmtContext ctx) {
-        //printContextInfo(ctx, "While Statement");
+        printContextInfo(ctx, "While Statement");
         SPLValue conditionValue = visitExpression(ctx.expression());
 
         // Überprüfe, ob der Ausdruck einen Boolean zurückgibt
         if (!(conditionValue instanceof SPLBooleanValue)) {
-            throw new RuntimeException("Boolean condition expected in if statement.");
+            throw new RuntimeException("Boolscher Ausdruck im If-Statement erwartet.");
         }
         int b = 20;
         while (conditionValue.asBoolean()) {
@@ -131,7 +137,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitExpression(SPLParser.ExpressionContext ctx) {
-        //printContextInfo(ctx, "Expression");
+        printContextInfo(ctx, "Expression");
         if (ctx.assignment() != null) {
             return visitAssignment(ctx.assignment());
         } else {
@@ -141,7 +147,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitAssignment(SPLParser.AssignmentContext ctx) {
-        //printContextInfo(ctx, "Assignment");
+        printContextInfo(ctx, "Assignment");
 
         if (ctx.IDENTIFIER() != null)
             currentVarName = ctx.IDENTIFIER().getText();
@@ -157,7 +163,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitLogic_or(SPLParser.Logic_orContext ctx) {
-        //printContextInfo(ctx, "Logic_or");
+        printContextInfo(ctx, "Logic_or");
         if (ctx.logic_and().size() > 1) {
             SPLValue result = visitLogic_and(ctx.logic_and(0));
             for (int i = 1; i < ctx.logic_and().size(); i++) {
@@ -174,7 +180,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitLogic_and(SPLParser.Logic_andContext ctx) {
-        //printContextInfo(ctx, "Logic_and");
+        printContextInfo(ctx, "Logic_and");
         if (ctx.equality().size() > 1) {
             SPLValue result = visitEquality(ctx.equality(0));
             for (int i = 1; i < ctx.equality().size(); i++) {
@@ -191,7 +197,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitEquality(SPLParser.EqualityContext ctx) {
-        //printContextInfo(ctx, "Equality");
+        printContextInfo(ctx, "Equality");
         SPLValue result = visitComparison(ctx.comparison(0));
         for (int i = 1; i < ctx.comparison().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
@@ -236,7 +242,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
                         break;
                 }
             } else
-                throw new RuntimeException("Incompatible Types. Operands must be both numeric, boolean or string");
+                throw new RuntimeException("Inkompatible Typen. Operanden müssen beide numerisch, boolean oder string und initialisiert sein.");
 
         }
         return result;
@@ -244,11 +250,14 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitComparison(SPLParser.ComparisonContext ctx) {
-        //printContextInfo(ctx, "Comparison");
+        printContextInfo(ctx, "Comparison");
         SPLValue result = visitTerm(ctx.term(0));
         for (int i = 1; i < ctx.term().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
             SPLValue rightValue = visitTerm(ctx.term(i));
+            if (!result.isNumeric() || !rightValue.isNumeric()) {
+                throw new RuntimeException("Inkompatible Typen. Operanden müssen beide numerisch sein.");
+            }
             switch (operator) {
                 case ">":
                     result = new SPLBooleanValue(result.asDouble() > rightValue.asDouble());
@@ -269,14 +278,14 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitTerm(SPLParser.TermContext ctx) {
-        //printContextInfo(ctx, "Term");
+        printContextInfo(ctx, "Term");
         SPLValue result = visitFactor(ctx.factor(0));
         for (int i = 1; i < ctx.factor().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
             SPLValue rightValue = visitFactor(ctx.factor(i));
             // Überprüfe, ob beide Operanden numerisch sind
             if (!result.isNumeric() || !rightValue.isNumeric()) {
-                throw new RuntimeException("Operands must be numeric for arithmetic operations!");
+                throw new RuntimeException("Inkompatible Typen. Für arithmetische Operationen müssen beide Operanden numerisch sein.");
             }
 
             switch (operator) {
@@ -288,7 +297,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
                     result = result.subtract(rightValue);
                     break;
                 default:
-                    throw new RuntimeException("Unsupported arithmetic operator: " + operator);
+                    throw new RuntimeException("Nicht unterstützer arithmetischer Operator: " + operator);
             }
         }
         return result;
@@ -296,7 +305,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitFactor(SPLParser.FactorContext ctx) {
-        //printContextInfo(ctx, "Factor");
+        printContextInfo(ctx, "Factor");
         SPLValue result = visitUnary(ctx.unary(0));
         for (int i = 1; i < ctx.unary().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
@@ -304,7 +313,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
             // Überprüfe, ob beide Operanden numerisch sind
             if (!result.isNumeric() || !rightValue.isNumeric()) {
-                throw new RuntimeException("Operands must be numeric for arithmetic operations!");
+                throw new RuntimeException("Inkompatible Typen. Für arithmetische Operationen müssen beide Operanden numerisch sein.");
             }
 
             switch (operator) {
@@ -315,14 +324,14 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
                     result = result.divide(rightValue);
                     break;
                 default:
-                    throw new RuntimeException("Unsupported arithmetic operator: " + operator);
+                    throw new RuntimeException("Nicht unterstützter arithmetischer Operator: " + operator);
             }
         }
         return result;    }
 
     @Override
     public SPLValue visitUnary(SPLParser.UnaryContext ctx) {
-        //printContextInfo(ctx, "Unary");
+        printContextInfo(ctx, "Unary");
         if (ctx.NOT() != null) {
             SPLValue operandValue = visitUnary(ctx.unary());
             return new SPLBooleanValue(!operandValue.asBoolean());
@@ -336,7 +345,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
 
     @Override
     public SPLValue visitPrimary(SPLParser.PrimaryContext ctx) {
-        //printContextInfo(ctx, "Primary");
+        printContextInfo(ctx, "Primary");
         if (ctx.TRUE() != null) {
             return new SPLBooleanValue(true);
         } else if (ctx.FALSE() != null) {
@@ -364,7 +373,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
             return new SPLUndefinedValue();
         }
     }
-    /*
+
     // Helper method to print node information
     private void printContextInfo(ParserRuleContext ctx, String nodeName) {
         if (ctx != null) {
@@ -374,7 +383,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
             System.out.println("symbolTable: " + symbolTable);
         }
     }
-    */
+
 
 
 }
