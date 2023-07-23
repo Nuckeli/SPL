@@ -139,6 +139,7 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
     @Override
     public SPLValue visitAssignment(SPLParser.AssignmentContext ctx) {
         printContextInfo(ctx, "Assignment");
+
         if (currentVarName == null){
             throw new RuntimeException("No IDENTIFIER found in assignment context.");
         }
