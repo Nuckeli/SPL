@@ -11,7 +11,7 @@ public class Main {
                 var b = 24.0;
                 var c = 3;
                 var x = 1337;
-                var s = "Super krasser String der hoffentlich erkannt wird;"
+                var s = "Super krasser String der hoffentlich erkannt wird";
                                 
                 // Here we go
                 while (a != b) {

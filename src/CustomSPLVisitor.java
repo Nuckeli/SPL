@@ -143,15 +143,19 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         if (currentVarName == null){
             throw new RuntimeException("No IDENTIFIER found in assignment context.");
         }
-
-        SPLValue rightValue = visitLogic_or(ctx.logic_or());
-        System.out.println(ctx.logic_or());
-        symbolTable.put(currentVarName, rightValue);
-        return rightValue;
+        System.out.println("Logic or ctx " + ctx.logic_or());
+        if (ctx.logic_or() != null) {
+            SPLValue rightValue = visitLogic_or(ctx.logic_or());
+            symbolTable.put(currentVarName, rightValue);
+            return rightValue;
+        } else {
+            return visitAssignment(ctx.assignment());
+        }
     }
 
     @Override
     public SPLValue visitLogic_or(SPLParser.Logic_orContext ctx) {
+        System.out.println(ctx);
         printContextInfo(ctx, "Logic_or");
         if (ctx.logic_and().size() > 1) {
             SPLValue result = visitLogic_and(ctx.logic_and(0));
