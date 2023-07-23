@@ -1,7 +1,16 @@
-Definition der Semantik
-===================================================================================================================================================================================
+## 1. Aufbau der Lösung
+**CustomSPLVisitor-Klasse:**
+- erweitert die SPLBaseVisitor<SPLValue>-Klasse und enthält Methoden zum Besuchen und Auswerten verschiedener Elemente des SPL-Programms. In dieser Klasse findet gleichzeitig semantische Prüfung und Interpretation statt
+- Die Klasse verfügt über eine Symboltabelle (symbolTable), um Variablen und ihre Werte während der Auswertung des Programms zu speichern
+- Jede visit...-Methode ist für die Auswertung eines spezifischen AST-Knotens verantwortlich und führt die entsprechenden Aktionen aus, um das Programm zu interpretieren
 
-### Implizite Boolean-Konvertierung: Was passiert wenn nicht-Boolsche Werte an Stellen genutzt werden, wo diese erwartet werden?
+**SPLValue:**
+- SPLValue ist eine abstrakte Klasse, die als Basisklasse für andere Werttypen wie Zahlen, Zeichenketten und boolesche Werte dient
+- Die abgeleiteten Klassen (SPLNumberValue, SPLStringValue, SPLBooleanValue und SPLUndefinedValue) implementieren spezifische Methoden, um Operationen auf den jeweiligen Werttypen auszuführen und sie in verschiedenen Formaten zurückzugeben (als Double, Zeichenkette oder booleschen Wert)
+## 2. Definition der Semantik
+
+
+### 2.1 Implizite Boolean-Konvertierung: Was passiert wenn nicht-Boolsche Werte an Stellen genutzt werden, wo diese erwartet werden?
 
 Beispiele: if("a string") {...}, while(1)
 
@@ -16,7 +25,7 @@ Fehler: Implizite Konvertierung ist nicht erlaubt
 
 ---
 
-### Operator-Überladen: Können arithmetische Operatoren auch für Werte, die keine Zahlen sind, genutzt werden?
+### 2.2 Operator-Überladen: Können arithmetische Operatoren auch für Werte, die keine Zahlen sind, genutzt werden?
 
 Beispiele: 3 + "4", "hello" + "world", "Number: " + 3, true + false, "Text" - 2
 
@@ -31,7 +40,7 @@ Beispiele: 3 + "4", "hello" + "world", "Number: " + 3, true + false, "Text" - 2
 
 ---
 
-### Neudefinition von Variablen: Dürfen Variablen innerhalb des selben Gültigkeitsbereichs mehrmals definiert werden?
+### 2.3 Neudefinition von Variablen: Dürfen Variablen innerhalb des selben Gültigkeitsbereichs mehrmals definiert werden?
 
 Beispiel var a = "before"; print a; var a = "after"; print a;
 
@@ -45,7 +54,7 @@ Beispiel var a = "before"; print a; var a = "after"; print a;
 - Ressourcenmanagement: Keine unnötige Speicherbelegung
 ---
 
-### Shadowing und Scoping: Ist die Neudefinition von Variablen in inneren Scopes erlaubt? Führt dies zu Shadowing oder zum Überschreiben der äußeren Variable?
+### 2.4 Shadowing und Scoping: Ist die Neudefinition von Variablen in inneren Scopes erlaubt? Führt dies zu Shadowing oder zum Überschreiben der äußeren Variable?
 
 Beispiel: var a = "outer"; print a; { var a = "inner"; print a; var b = "inner b"; } print a; print b;
 
@@ -65,7 +74,7 @@ Beispiel: var a = "outer"; print a; { var a = "inner"; print a; var b = "inner b
 
 ---
 
-### Uninitialisierte Werte: Können Variablen verwendet werden, ohne dass ein expliziter Wert zugewiesen wurde (bzw. gibt es null)?
+### 2.5 Uninitialisierte Werte: Können Variablen verwendet werden, ohne dass ein expliziter Wert zugewiesen wurde (bzw. gibt es null)?
 
 Beispiel: var a; print a; // Error or "null"?
 

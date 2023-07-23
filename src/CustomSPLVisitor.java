@@ -103,23 +103,26 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         return value;
     }
 
+    // Diese Methode wird aufgerufen, um eine While-Schleife im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitWhileStmt(SPLParser.WhileStmtContext ctx) {
         SPLValue conditionValue = visitExpression(ctx.expression());
+
         // Überprüfe, ob der Ausdruck einen Boolean zurückgibt
         if (!(conditionValue instanceof SPLBooleanValue)) {
-            throw new RuntimeException("Boolscher Ausdruck im If-Statement erwartet.");
+            throw new RuntimeException("Boolscher Ausdruck im While-Statement erwartet.");
         }
         while (conditionValue.asBoolean()) {
             visitStatement(ctx.statement());
+            // Nachdem die Anweisungen ausgeführt wurden, evaluieren wir erneut den Ausdruck (Bedingung).
+            // Dadurch wird überprüft, ob die Schleife weiter ausgeführt werden soll oder nicht.
             conditionValue = visitExpression(ctx.expression());
         }
         return new SPLUndefinedValue();
     }
-
+    // Rufe die visit-Methode für jede Deklaration im Block auf
     @Override
     public SPLValue visitBlock(SPLParser.BlockContext ctx) {
-        // Rufe die visit-Methode für jede Deklaration im Block auf
         for (SPLParser.DeclarationContext declarationContext : ctx.declaration()) {
             visitDeclaration(declarationContext);
         }
@@ -135,61 +138,83 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         }
     }
 
+    // Diese Methode wird aufgerufen, um eine Zuweisung (Assignment) im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitAssignment(SPLParser.AssignmentContext ctx) {
         if (ctx.IDENTIFIER() != null)
             currentVarName = ctx.IDENTIFIER().getText();
         if (ctx.logic_or() != null) {
             SPLValue rightValue = visitLogic_or(ctx.logic_or());
+            // Führe die Zuweisung aus
             symbolTable.put(currentVarName, rightValue);
+            // Setze den aktuellen Variablennamen zurück, um eventuelle Konflikte zu vermeiden
             currentVarName = "";
             return rightValue;
         } else {
+            // Wenn der Ausdruck auf der rechten Seite der Zuweisung kein logischer Ausdruck ist,
+            // rufen wir die Methode "visitAssignment" rekursiv auf, um den Ausdruck weiter auszuwerten.
             return visitAssignment(ctx.assignment());
         }
     }
 
+    // Diese Methode wird aufgerufen, um einen logischen ODER-Ausdruck im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitLogic_or(SPLParser.Logic_orContext ctx) {
+        // Wenn es mehr als einen Operanden im logischen ODER-Ausdruck gibt
         if (ctx.logic_and().size() > 1) {
+            // Evaluieren des ersten Operanden
             SPLValue result = visitLogic_and(ctx.logic_and(0));
+            // Iteriere über die restlichen Operanden im logischen ODER-Ausdruck
             for (int i = 1; i < ctx.logic_and().size(); i++) {
                 boolean leftValue = result.asBoolean();
                 boolean rightValue = visitLogic_and(ctx.logic_and(i)).asBoolean();
-                // Führe logisches "ODER" aus und speicher den Wert
                 result = new SPLBooleanValue(leftValue || rightValue);
             }
             return result;
         } else {
+            // Wenn es nur einen Operanden im logischen ODER-Ausdruck gibt,
+            // rufen wir die Methode "visitLogic_and" auf, um den Operanden auszuwerten und das Ergebnis zurückzugeben.
             return visitLogic_and(ctx.logic_and(0));
         }
     }
 
+    // Diese Methode wird aufgerufen, um einen logischen UND-Ausdruck im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitLogic_and(SPLParser.Logic_andContext ctx) {
+        // Diese Methode wird aufgerufen, um einen logischen UND-Ausdruck im SPL-Programm zu analysieren und auszuwerten.
+        // Wenn es mehr als einen Operanden im logischen UND-Ausdruck gibt
         if (ctx.equality().size() > 1) {
+            // Evaluieren des ersten Operanden
             SPLValue result = visitEquality(ctx.equality(0));
+            // Iteriere über die restlichen Operanden im logischen UND-Ausdruck
             for (int i = 1; i < ctx.equality().size(); i++) {
                 boolean leftValue = result.asBoolean();
                 boolean rightValue = visitEquality(ctx.equality(i)).asBoolean();
-                // Führe logisches "UND" aus und speicher den Wert
                 result = new SPLBooleanValue(leftValue && rightValue);
             }
             return result;
         } else {
+            // Wenn es nur einen Operanden im logischen UND-Ausdruck gibt,
+            // rufen wir die Methode "visitEquality" auf, um den Operanden auszuwerten und das Ergebnis zurückzugeben.
             return visitEquality(ctx.equality(0));
         }
     }
 
+    // Diese Methode wird aufgerufen, um einen Gleichheits- oder Ungleichheitsausdruck im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitEquality(SPLParser.EqualityContext ctx) {
+        // Evaluieren des ersten Operanden
         SPLValue result = visitComparison(ctx.comparison(0));
+        // Iteriere über die restlichen Vergleichsoperationen im Ausdruck
         for (int i = 1; i < ctx.comparison().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
+            // Evaluieren des aktuellen Operanden
             SPLValue rightValue = visitComparison(ctx.comparison(i));
-            if(result == null || rightValue == null)
+            // Überprüfe, ob einer der Operanden null ist
+            if (result == null || rightValue == null) {
                 throw new RuntimeException("Inkompatible Typen. Operationen mit null nicht erlaubt!");
-            // Überprüfe Vergleichsoperator
+            }
+            // Überprüfe die Typen der Operanden und führe die entsprechende Vergleichsoperation aus
             if (result.isNumeric() && rightValue.isNumeric()) {
                 switch (operator) {
                     case "==":
@@ -208,30 +233,36 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
                         result = new SPLBooleanValue(result.asBoolean() != rightValue.asBoolean());
                         break;
                 }
-            } else if (result.isString() && rightValue.isString()){
+            } else if (result.isString() && rightValue.isString()) {
                 switch (operator) {
                     case "==":
                         result = new SPLBooleanValue(result.asString().equals(rightValue.asString()));
                         break;
                     case "!=":
-                        result = new SPLBooleanValue(!(result.asString().equals(rightValue.asString())));
+                        result = new SPLBooleanValue(!result.asString().equals(rightValue.asString()));
                         break;
                 }
-            } else
+            } else {
                 throw new RuntimeException("Inkompatible Typen. Operanden müssen beide numerisch, boolean oder string und initialisiert sein.");
+            }
         }
         return result;
     }
 
+    // Diese Methode wird aufgerufen, um einen Vergleichsausdruck im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitComparison(SPLParser.ComparisonContext ctx) {
+        // Evaluieren des ersten Operanden
         SPLValue result = visitTerm(ctx.term(0));
+        // Iteriere über die restlichen Operanden
         for (int i = 1; i < ctx.term().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
+            // Evaluieren des aktuellen Operanden
             SPLValue rightValue = visitTerm(ctx.term(i));
             if (!result.isNumeric() || !rightValue.isNumeric()) {
                 throw new RuntimeException("Inkompatible Typen. Operanden müssen beide numerisch sein.");
             }
+            // Führe die entsprechende Vergleichsoperation aus und speichere den Wert
             switch (operator) {
                 case ">":
                     result = new SPLBooleanValue(result.asDouble() > rightValue.asDouble());
@@ -250,41 +281,48 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         return result;
     }
 
+    // Diese Methode wird aufgerufen, um einen Term-Ausdruck im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitTerm(SPLParser.TermContext ctx) {
+        // Evaluieren des ersten Faktors
         SPLValue result = visitFactor(ctx.factor(0));
+        // Iteriere über die restlichen Faktoren
         for (int i = 1; i < ctx.factor().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
+            // Evaluieren des aktuellen Faktors
             SPLValue rightValue = visitFactor(ctx.factor(i));
-            // Überprüfe, ob beide Operanden numerisch sind
             if (!result.isNumeric() || !rightValue.isNumeric()) {
                 throw new RuntimeException("Inkompatible Typen. Für arithmetische Operationen müssen beide Operanden numerisch sein.");
             }
+            // Führe die entsprechende arithmetische Operation aus und speichere den Wert
             switch (operator) {
                 case "+":
                     result = result.add(rightValue);
-
                     break;
                 case "-":
                     result = result.subtract(rightValue);
                     break;
                 default:
-                    throw new RuntimeException("Nicht unterstützer arithmetischer Operator: " + operator);
+                    throw new RuntimeException("Nicht unterstützter arithmetischer Operator: " + operator);
             }
         }
         return result;
     }
 
+    // Diese Methode wird aufgerufen, um einen Faktor-Ausdruck im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitFactor(SPLParser.FactorContext ctx) {
+        // Evaluieren des ersten Faktors
         SPLValue result = visitUnary(ctx.unary(0));
+        // Iteriere über die restlichen Faktoren
         for (int i = 1; i < ctx.unary().size(); i++) {
             String operator = ctx.getChild(2 * i - 1).getText();
+            // Evaluieren des aktuellen Faktors
             SPLValue rightValue = visitUnary(ctx.unary(i));
-            // Überprüfe, ob beide Operanden numerisch sind
             if (!result.isNumeric() || !rightValue.isNumeric()) {
                 throw new RuntimeException("Inkompatible Typen. Für arithmetische Operationen müssen beide Operanden numerisch sein.");
             }
+            // Führe die entsprechende arithmetische Operation aus und speichere den Wert
             switch (operator) {
                 case "*":
                     result = result.multiply(rightValue);
@@ -299,19 +337,28 @@ public class CustomSPLVisitor extends SPLBaseVisitor<SPLValue> {
         return result;
     }
 
+    // Diese Methode wird aufgerufen, um einen Unary-Ausdruck im SPL-Programm zu analysieren und auszuwerten.
     @Override
     public SPLValue visitUnary(SPLParser.UnaryContext ctx) {
+        // Wenn der Ausdruck eine logische Negation (NOT) ist
         if (ctx.NOT() != null) {
             SPLValue operandValue = visitUnary(ctx.unary());
+            // Führe die logische Negation aus und speichere den Wert
             return new SPLBooleanValue(!operandValue.asBoolean());
-        } else if (ctx.MINUS() != null) {
+        }
+        // Wenn der Ausdruck eine Negation (Minus) ist
+        else if (ctx.MINUS() != null) {
             SPLValue operandValue = visitUnary(ctx.unary());
+            // Führe die Negation aus und speichere den Wert
             return operandValue.negate();
-        } else {
+        }
+        else {
             return visitPrimary(ctx.primary());
         }
     }
 
+
+    // Überprüfe welches Terminal-Symbol vorliegt und gibt den entsprechenden Wert zurück
     @Override
     public SPLValue visitPrimary(SPLParser.PrimaryContext ctx) {
         if (ctx.TRUE() != null) {
